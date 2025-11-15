@@ -40,3 +40,13 @@
 .read-the-docs {
   color: #888;
 }
+
+/* HIDE SCROLLBAR COMPLETELY */
+::-webkit-scrollbar {
+  display: none;
+}
+
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
