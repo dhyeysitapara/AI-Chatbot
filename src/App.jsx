@@ -4,7 +4,7 @@ import Answers from "./components/Answers";
 
 function App() {
   const [question, setQuestion] = useState("");
-  const [result, setResult] = useState(undefined);
+  const [result, setResult] = useState([]);
 
   const payload = {
     contents: [
@@ -31,8 +31,10 @@ function App() {
     dataString = dataString.split("* ");
     dataString = dataString.map((item) => item.trim());
 
-    setResult(dataString);
+    setResult([...result, {type: "q" , text: question} ,{type:"a" , text: dataString}])
   };
+
+  console.log(result)
 
   return (
     <div className="grid grid-cols-5 h-screen overflow-hidden">
@@ -40,16 +42,33 @@ function App() {
 <div className="col-span-4 p-10">
   <div className="w-full container overflow-x-hidden h-150 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-900 [&::-webkit-scrollbar-thumb]:rounded-full">
     <div className="text-white">
-            <ul>
-            {/* {result} */}
+<ul>
+
+{
+  result.map((item, index) => (
+    item.type === "q" ? (
+      <li key={index} className="text-left p-1">
+        <Answers ans={item.text} totalResult={1} index={index} />
+      </li>
+    ) : item.text.map((ansItem,ansIndex)=>(
+      
+       <li key={index + Math.random()} className="text-left p-1">
+        <Answers ans={ansItem} totalResult={item.length} index={ansIndex} />
+      </li>
+
+    ))
+  ))
+}
+</ul>
+            {/* <ul>
 {result &&
   result.map((item, index) => (
-    <li key={index} className="text-left p-1">
+    <li key={index + Math.random()} className="text-left p-1">
       <Answers ans={item} totalResult={result.length} index={index} />
     </li>
   ))}
 
-            </ul>
+            </ul> */}
           </div>
         </div>
 
