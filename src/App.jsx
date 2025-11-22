@@ -35,16 +35,19 @@ function App() {
   };
 
   return (
-    <div className="grid grid-cols-5 h-screen text-center overflow-hidden">
+    <div className="grid grid-cols-5 h-screen overflow-hidden">
       <div className="col-span-1 bg-gray-900"></div>
 <div className="col-span-4 p-10">
-  <div className="w-full container overflow-x-hidden h-150 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-700 [&::-webkit-scrollbar-thumb]:rounded-full">
+  <div className="w-full container overflow-x-hidden h-150 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-900 [&::-webkit-scrollbar-thumb]:rounded-full">
     <div className="text-white">
             <ul>
             {/* {result} */}
-
-            {result && result.map((item,index) =>
-              <li className="text-left p-1"> <Answers ans = {item} /></li> )}
+{result &&
+  result.map((item, index) => (
+    <li key={index} className="text-left p-1">
+      <Answers ans={item} totalResult={result.length} index={index} />
+    </li>
+  ))}
 
             </ul>
           </div>
