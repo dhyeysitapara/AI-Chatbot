@@ -5,6 +5,7 @@ import Answers from "./components/Answers";
 function App() {
   const [question, setQuestion] = useState("");
   const [result, setResult] = useState([]);
+  const [recentHistory,setRecentHistory] = useState([])
 
   const payload = {
     contents: [
@@ -18,31 +19,59 @@ function App() {
     ],
   };
 
-  const askQuestion = async () => {
-    let response = await fetch(URL, {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
+  
+const askQuestion = async () => {
+  // Get existing history or initialize empty array
+  let history = [];
+  const storedHistory = localStorage.getItem("history");
+  
+  if (storedHistory) {
+    try {
+      history = JSON.parse(storedHistory);
+    } catch (error) {
+      console.error("Error parsing history:", error);
+      history = [];
+    }
+  }
+  
+  // Add new question to history
+  history = [question, ...history];
+  localStorage.setItem("history", JSON.stringify(history));
+  setRecentHistory(history);
 
-    response = await response.json();
+  let response = await fetch(URL, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 
-    let dataString = response.candidates[0].content.parts[0].text;
+  response = await response.json();
 
-    dataString = dataString.split("* ");
-    dataString = dataString.map((item) => item.trim());
+  let dataString = response.candidates[0].content.parts[0].text;
 
-    setResult([
-      ...result,
-      { type: "q", text: question },
-      { type: "a", text: dataString },
-    ]);
-  };
+  dataString = dataString.split("* ");
+  dataString = dataString.map((item) => item.trim());
 
+  setResult([
+    ...result,
+    { type: "q", text: question },
+    { type: "a", text: dataString },
+  ]);
+};
   console.log(result);
 
   return (
     <div className="grid grid-cols-5 h-screen overflow-hidden">
-      <div className="col-span-1 bg-gray-900"></div>
+      <div className="col-span-1 bg-gray-900">
+        <ul>
+          {
+            recentHistory && recentHistory.map((item , index)=>(
+              <li key={index}>
+                {item}
+              </li>
+            ))
+          }
+        </ul>
+      </div>
       <div className="col-span-4 p-10">
         <div className="w-full container overflow-x-hidden h-150 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-900 [&::-webkit-scrollbar-thumb]:rounded-full">
           <div className="text-white">
