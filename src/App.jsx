@@ -61,16 +61,39 @@ const askQuestion = async () => {
 
   return (
     <div className="grid grid-cols-5 h-screen overflow-hidden">
-      <div className="col-span-1 bg-gray-900">
-        <ul>
-          {
-            recentHistory && recentHistory.map((item , index)=>(
-              <li key={index}>
-                {item}
-              </li>
-            ))
-          }
-        </ul>
+      <div className="col-span-1 bg-gray-900 text-center">
+      <div className="flex justify-between items-center pt-5 px-4">
+  <h1 className="text-xl text-white">Recent History</h1>
+  <button 
+    onClick={() => {
+      localStorage.removeItem("history");
+      setRecentHistory([]);
+    }}
+    className="hover:bg-red-600 p-2 rounded transition"
+  >
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      height="20px" 
+      viewBox="0 -960 960 960" 
+      width="20px" 
+      fill="#ffffff"
+    >
+      <path d="M312-144q-29.7 0-50.85-21.15Q240-186.3 240-216v-480h-48v-72h192v-48h192v48h192v72h-48v479.57Q720-186 698.85-165T648-144H312Zm336-552H312v480h336v-480ZM384-288h72v-336h-72v336Zm120 0h72v-336h-72v336ZM312-696v480-480Z"/>
+    </svg>
+  </button>
+</div>
+      <ul className="text-left overflow-auto text-sm pt-4">
+  {
+    recentHistory && recentHistory.map((item, index) => (
+      <li 
+        className="pl-5 p-3 truncate text-gray-300 cursor-pointer hover:bg-gray-800 hover:text-white border-b border-gray-800 transition-colors duration-200" 
+        key={index}
+      >
+        {item}
+      </li>
+    ))
+  }
+</ul>
       </div>
       <div className="col-span-4 p-10">
         <div className="w-full container overflow-x-hidden h-150 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-900 [&::-webkit-scrollbar-thumb]:rounded-full">
