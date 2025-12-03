@@ -19,9 +19,20 @@ function App() {
     ],
   };
 
+
+  const isEnter = (event) => {
+    // console.log(event.key)
+    if(event.key == "Enter"){
+      askQuestion();
+    }
+  }
   
 const askQuestion = async () => {
   // Get existing history or initialize empty array
+
+  if (!question ){
+    return False
+  } 
   let history = [];
   const storedHistory = localStorage.getItem("history");
   
@@ -56,7 +67,11 @@ const askQuestion = async () => {
     { type: "q", text: question },
     { type: "a", text: dataString },
   ]);
+
+  setQuestion('');
 };
+
+  
   console.log(result);
 
   return (
@@ -140,6 +155,7 @@ const askQuestion = async () => {
           <input
             className="w-full h-full p-2 outline-none"
             value={question}
+            onKeyDown={isEnter}
             onChange={(event) => setQuestion(event.target.value)}
             type="text"
             placeholder="Ask me anything"
