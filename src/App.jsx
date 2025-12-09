@@ -14,6 +14,10 @@ function App() {
 
   // Load history once (ensure it's an array)
   useEffect(() => {
+    loadHistory();
+  }, []);
+
+  const loadHistory = () => {
     try {
       const stored = localStorage.getItem("history");
       const parsed = stored ? JSON.parse(stored) : [];
@@ -22,7 +26,7 @@ function App() {
       console.error("Error loading history:", err);
       setRecentHistory([]);
     }
-  }, []);
+  };
 
   // Scroll chat container to bottom whenever result changes
   useEffect(() => {
@@ -62,7 +66,7 @@ function App() {
     setLoading(true);
 
     const normalizedKey = question.trim();
-    const id = Date.now().toString();
+    const id = Date.now().toString(); // ALWAYS generate new ID for each question
 
     // load existing history array safely
     let savedHistory = [];
@@ -74,20 +78,14 @@ function App() {
       savedHistory = [];
     }
 
-    // avoid duplicate questions (by text)
-    const existsIndex = savedHistory.findIndex(
-      (h) => (h.question || "").trim() === normalizedKey
+    // FIX: Remove any existing question with same text (to avoid duplicate IDs)
+    const filteredHistory = savedHistory.filter(
+      (h) => (h.question || "").trim() !== normalizedKey
     );
 
-    let updatedHistory = savedHistory;
-    if (existsIndex === -1) {
-      const newHistoryItem = { id, question: normalizedKey };
-      updatedHistory = [newHistoryItem, ...savedHistory];
-    } else {
-      // move existing to top
-      const existing = savedHistory[existsIndex];
-      updatedHistory = [existing, ...savedHistory.filter((_, i) => i !== existsIndex)];
-    }
+    // Add new item at top with NEW ID
+    const newHistoryItem = { id, question: normalizedKey };
+    const updatedHistory = [newHistoryItem, ...filteredHistory];
 
     try {
       localStorage.setItem("history", JSON.stringify(updatedHistory));
@@ -133,6 +131,7 @@ function App() {
         const allChats = JSON.parse(localStorage.getItem("allChats") || "{}");
         allChats[id] = newResult;
         localStorage.setItem("allChats", JSON.stringify(allChats));
+        console.log("Saved chat with ID:", id, "Question:", normalizedKey);
       } catch (err) {
         console.error("Failed saving allChats:", err);
       }
@@ -150,18 +149,40 @@ function App() {
     }
   };
 
-  const handleHistoryClick = (id) => {
+  const handleHistoryClick = (id, questionText) => {
     try {
       const allChats = JSON.parse(localStorage.getItem("allChats") || "{}");
       const chat = allChats[id];
       if (chat) {
         setResult(chat);
-        // wait for render then scroll
+        
+        // Wait for render, then find and scroll to the specific question
         setTimeout(() => {
           if (chatContainerRef.current) {
-            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+            // Find all question containers
+            const questionContainers = document.querySelectorAll('.flex.justify-end');
+            
+            // Look for the question that matches the clicked one
+            let found = false;
+            for (let container of questionContainers) {
+              const questionElement = container.querySelector('li');
+              if (questionElement && questionElement.textContent.includes(questionText)) {
+                // Scroll this question into view at the top
+                questionElement.scrollIntoView({ 
+                  behavior: 'smooth', 
+                  block: 'start' 
+                });
+                found = true;
+                break;
+              }
+            }
+            
+            // If we didn't find the specific question, scroll to top
+            if (!found) {
+              chatContainerRef.current.scrollTop = 0;
+            }
           }
-        }, 50);
+        }, 100);
       } else {
         setResult([]);
       }
@@ -171,29 +192,55 @@ function App() {
     }
   };
 
+  // Function to clear ALL history and chats
+  const clearAllHistory = () => {
+    if (window.confirm("Are you sure you want to clear ALL chat history? This cannot be undone.")) {
+      localStorage.removeItem("history");
+      localStorage.removeItem("allChats");
+      setRecentHistory([]);
+      setResult([]);
+      alert("All history and chats have been cleared!");
+    }
+  };
+
+  // Function to clear only sidebar history (keeps current chat)
+  const clearSidebarHistory = () => {
+    if (window.confirm("Clear sidebar history? Current chat will remain visible.")) {
+      localStorage.removeItem("history");
+      setRecentHistory([]);
+      alert("Sidebar history cleared!");
+    }
+  };
+
   return (
     <div className="grid grid-cols-5 h-screen overflow-hidden">
       <div className="col-span-1 bg-gray-900 text-center">
         <div className="flex justify-between items-center pt-5 px-4">
           <h1 className="text-xl text-white">Recent History</h1>
-          <button
-            onClick={() => {
-              localStorage.removeItem("history");
-              setRecentHistory([]);
-            }}
-            className="hover:bg-red-600 p-2 rounded transition"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#ffffff">
-              <path d="M312-144q-29.7 0-50.85-21.15Q240-186.3 240-216v-480h-48v-72h192v-48h192v48h192v72h-48v479.57Q720-186 698.85-165T648-144H312Zm336-552H312v480h336v-480ZM384-288h72v-336h-72v336Zm120 0h72v-336h-72v336ZM312-696v480-480Z" />
-            </svg>
-          </button>
+          <div className="flex space-x-2">
+            <button
+              onClick={clearSidebarHistory}
+              className="hover:bg-red-600 p-2 rounded transition"
+              title="Clear sidebar history"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                height="20px"
+                viewBox="0 -960 960 960"
+                width="20px"
+                fill="#ffffff"
+              >
+                <path d="M312-144q-29.7 0-50.85-21.15Q240-186.3 240-216v-480h-48v-72h192v-48h192v48h192v72h-48v479.57Q720-186 698.85-165T648-144H312Zm336-552H312v480h336v-480ZM384-288h72v-336h-72v336Zm120 0h72v-336h-72v336ZM312-696v480-480Z" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         <ul className="text-left overflow-auto text-sm pt-4">
           {recentHistory &&
             recentHistory.map((item) => (
               <li
-                onClick={() => handleHistoryClick(item.id)}
+                onClick={() => handleHistoryClick(item.id, item.question)}
                 className="pl-5 p-3 truncate text-gray-300 cursor-pointer hover:bg-gray-800 hover:text-white border-b border-gray-800 transition-colors duration-200"
                 key={item.id}
               >
@@ -230,19 +277,27 @@ function App() {
           </div>
         </div>
 
-        <div className="bg-gray-900 w-1/2 p-5 pr-5 text-white border border-blue-700 rounded-lg m-auto flex">
-          <input
-            className="w-full h-full p-2 outline-none"
-            value={question}
-            onKeyDown={isEnter}
-            onChange={(event) => setQuestion(event.target.value)}
-            type="text"
-            placeholder="Ask me anything"
-            disabled={loading}
-          />
-          <button className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-800 transition" onClick={askQuestion} disabled={loading}>
-            {loading ? "Loading..." : "Enter"}
-          </button>
+        <div className="bg-gray-900 w-1/2 p-5 pr-5 text-white border border-blue-700 rounded-lg m-auto flex flex-col gap-3 mt-6">
+          <div className="flex">
+            <input
+              className="w-full h-full p-2 outline-none bg-transparent"
+              value={question}
+              onKeyDown={isEnter}
+              onChange={(event) => setQuestion(event.target.value)}
+              type="text"
+              placeholder="Ask me anything"
+              disabled={loading}
+            />
+            <button 
+              className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-800 transition ml-2" 
+              onClick={askQuestion} 
+              disabled={loading}
+            >
+              {loading ? "Loading..." : "Enter"}
+            </button>
+          </div>
+          
+          
         </div>
 
         {error && <div className="text-red-400 mt-2 text-center">{error}</div>}
