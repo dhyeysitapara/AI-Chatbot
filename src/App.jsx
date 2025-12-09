@@ -214,47 +214,69 @@ function App() {
 
   return (
     <div className="grid grid-cols-5 h-screen overflow-hidden">
-      <div className="col-span-1 bg-gray-900 text-center">
-        <div className="flex justify-between items-center pt-5 px-4">
-          <h1 className="text-xl text-white">Recent History</h1>
-          <div className="flex space-x-2">
-            <button
-              onClick={clearSidebarHistory}
-              className="hover:bg-red-600 p-2 rounded transition"
-              title="Clear sidebar history"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                height="20px"
-                viewBox="0 -960 960 960"
-                width="20px"
-                fill="#ffffff"
-              >
-                <path d="M312-144q-29.7 0-50.85-21.15Q240-186.3 240-216v-480h-48v-72h192v-48h192v48h192v72h-48v479.57Q720-186 698.85-165T648-144H312Zm336-552H312v480h336v-480ZM384-288h72v-336h-72v336Zm120 0h72v-336h-72v336ZM312-696v480-480Z" />
-              </svg>
-            </button>
-          </div>
-        </div>
+      <div className="col-span-1 bg-gradient-to-b from-gray-900 to-black text-center relative top-0 left-0 transform-gpu backface-hidden">
+  {/* Brand section - enlarged text, no robot */}
+  <div className="pt-8 pb-6 border-b border-gray-800">
+    <div className="px-4">
+      <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+        ThinkBot
+      </h1>
+      <p className="text-gray-400 text-l mt-1">Your AI Assistant</p>
+    </div>
+  </div>
 
-        <ul className="text-left overflow-auto text-sm pt-4">
-          {recentHistory &&
-            recentHistory.map((item) => (
-              <li
-                onClick={() => handleHistoryClick(item.id, item.question)}
-                className="pl-5 p-3 truncate text-gray-300 cursor-pointer hover:bg-gray-800 hover:text-white border-b border-gray-800 transition-colors duration-200"
-                key={item.id}
-              >
-                {item.question}
-              </li>
-            ))}
-        </ul>
-      </div>
-
-      <div className="col-span-4 p-10">
-        <div
-          ref={chatContainerRef}
-          className="w-full container overflow-x-hidden h-150 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-900 [&::-webkit-scrollbar-thumb]:rounded-full"
+  {/* Recent History section */}
+  <div className="mt-4">
+    <div className="flex justify-between items-center px-4 py-3">
+      <h2 className="text-md font-semibold text-gray-300">Recent History</h2>
+      <button
+        onClick={() => {
+          localStorage.removeItem("history");
+          setRecentHistory([]);
+        }}
+        className="hover:bg-red-600 p-2 rounded transition"
+        title="Clear history"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          height="18px"
+          viewBox="0 -960 960 960"
+          width="18px"
+          fill="#ffffff"
         >
+          <path d="M312-144q-29.7 0-50.85-21.15Q240-186.3 240-216v-480h-48v-72h192v-48h192v48h192v72h-48v479.57Q720-186 698.85-165T648-144H312Zm336-552H312v480h336v-480ZM384-288h72v-336h-72v336Zm120 0h72v-336h-72v336ZM312-696v480-480Z" />
+        </svg>
+      </button>
+    </div>
+
+    {/* History list - hidden scrollbar */}
+    <ul className="text-left overflow-y-auto text-sm pt-2 h-[calc(100vh-220px)] scrollbar-hide">
+      {recentHistory &&
+        recentHistory.map((item) => (
+          <li
+            onClick={() => handleHistoryClick(item.id, item.question)}
+            className="pl-5 pr-3 py-3 truncate text-gray-300 cursor-pointer hover:bg-gray-800 hover:text-white border-b border-gray-800 transition-colors duration-200"
+            key={item.id}
+          >
+            {item.question}
+          </li>
+        ))}
+      
+      {recentHistory.length === 0 && (
+        <div className="px-5 py-8 text-center">
+          <p className="text-gray-500 text-sm">No recent history</p>
+          <p className="text-gray-600 text-xs mt-1">Your questions will appear here</p>
+        </div>
+      )}
+    </ul>
+  </div>
+</div>
+
+    <div className="col-span-4 p-10 overflow-hidden"> {/* Add overflow-hidden here */}
+  <div
+    ref={chatContainerRef}
+    className="w-full container overflow-x-hidden h-150 overflow-y-scroll [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-900 [&::-webkit-scrollbar-thumb]:rounded-full"
+  >
           <div className="text-white">
             <ul>
               {result.map((item, index) => (
@@ -277,7 +299,7 @@ function App() {
           </div>
         </div>
 
-        <div className="bg-gray-900 w-1/2 p-5 pr-5 text-white border border-blue-700 rounded-lg m-auto flex flex-col gap-3 mt-6">
+        <div className="bg-gray-900 w-1/2 p-5 pr-5 text-white border border-blue-900 rounded-lg m-auto flex flex-col gap-3 mt-6">
           <div className="flex">
             <input
               className="w-full h-full p-2 outline-none bg-transparent"
@@ -289,10 +311,7 @@ function App() {
               disabled={loading}
             />
             <button 
-              className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-800 transition ml-2" 
-              onClick={askQuestion} 
-              disabled={loading}
-            >
+ className="px-4 py-2 bg-gradient-to-r from-blue-900 to-indigo-900 rounded-lg hover:from-blue-900 hover:to-indigo-800 transition ml-2 shadow-lg"             >
               {loading ? "Loading..." : "Enter"}
             </button>
           </div>
