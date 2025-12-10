@@ -119,10 +119,7 @@ function App() {
 
 console.log("Raw API response:", rawText); // ADD THIS
 // Split by bullet points but keep the formatting
-let dataString = rawText
-  .split(/\n\s*\*\s+/) // Split by bullets
-  .map((s) => s.trim())
-  .filter(Boolean);
+const dataString = rawText;
 
 // If no bullets found, just split by paragraphs
 if (dataString.length === 1) {
@@ -131,7 +128,7 @@ if (dataString.length === 1) {
       const newResult = [
         ...result,
         { type: "q", text: normalizedKey },
-        { type: "a", text: dataString },
+        { type: "a", text: [dataString] },
       ];
 
       setResult(newResult);
