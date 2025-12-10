@@ -116,8 +116,18 @@ function App() {
       const rawText =
         json?.candidates?.[0]?.content?.parts?.[0]?.text ?? "No response from API.";
 
-      let dataString = rawText.split("* ").map((s) => s.trim()).filter(Boolean);
 
+console.log("Raw API response:", rawText); // ADD THIS
+// Split by bullet points but keep the formatting
+let dataString = rawText
+  .split(/\n\s*\*\s+/) // Split by bullets
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+// If no bullets found, just split by paragraphs
+if (dataString.length === 1) {
+  dataString = rawText.split('\n\n').map((s) => s.trim()).filter(Boolean);
+}
       const newResult = [
         ...result,
         { type: "q", text: normalizedKey },
@@ -250,8 +260,7 @@ function App() {
     </div>
 
     {/* History list - hidden scrollbar */}
-    <ul className="text-left overflow-y-auto text-sm pt-2 h-[calc(100vh-220px)] scrollbar-hide">
-      {recentHistory &&
+<ul className="text-left overflow-y-auto text-sm pt-2 h-[calc(100vh-220px)] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-900 [&::-webkit-scrollbar-thumb]:rounded-full">      {recentHistory &&
         recentHistory.map((item) => (
           <li
             onClick={() => handleHistoryClick(item.id, item.question)}
