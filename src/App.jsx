@@ -119,7 +119,7 @@ function App() {
 
 console.log("Raw API response:", rawText); // ADD THIS
 // Split by bullet points but keep the formatting
-const dataString = rawText;
+let dataString = rawText;
 
 // If no bullets found, just split by paragraphs
 if (dataString.length === 1) {
