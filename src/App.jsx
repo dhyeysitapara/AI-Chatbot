@@ -274,7 +274,7 @@ function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden md:grid md:grid-cols-5">
+    <div className="flex flex-col h-dvh overflow-hidden md:grid md:grid-cols-5">
       <div className="hidden md:block col-span-1 bg-gradient-to-b from-gray-900 to-black text-center relative top-0 left-0 transform-gpu backface-hidden">
         {/* Brand section - enlarged text, no robot */}
         <div className="pt-8 pb-6 border-b border-gray-800">
@@ -380,7 +380,7 @@ function App() {
           </div>
         </div>
 
-        <div className="bg-gray-900 w-11/12 md:w-1/2 p-5 pr-5 text-white border border-blue-900 rounded-lg m-auto flex flex-col gap-3 mt-6">
+        <div className="bg-gray-900 w-full max-w-3xl mx-auto p-3 text-white border border-blue-900 rounded-lg flex flex-col gap-3 mt-4 mb-2 md:mb-6">
           <div className="flex">
             <input
               className="w-full h-full p-2 outline-none bg-transparent"
@@ -391,7 +391,10 @@ function App() {
               placeholder="Ask me anything"
               disabled={loading}
             />
-            <button className="px-4 py-2 bg-gradient-to-r from-blue-900 to-indigo-900 rounded-lg hover:from-blue-900 hover:to-indigo-800 transition ml-2 shadow-lg">
+            <button
+              onClick={askQuestion}
+              className="px-4 py-2 bg-gradient-to-r from-blue-900 to-indigo-900 rounded-lg hover:from-blue-900 hover:to-indigo-800 transition ml-2 shadow-lg"
+            >
               {loading ? "Loading..." : "Enter"}
             </button>
           </div>
