@@ -340,7 +340,7 @@ function App() {
       <div className="w-full md:col-span-4 p-4 md:p-10 overflow-hidden flex flex-col h-full">
         <div
           ref={chatContainerRef}
-          className="w-full container overflow-x-hidden h-150 overflow-y-scroll [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-900 [&::-webkit-scrollbar-thumb]:rounded-full"
+          className="w-full container overflow-x-hidden flex-1 min-h-0 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-900 [&::-webkit-scrollbar-thumb]:rounded-full"
         >
           <div className="text-white">
             <ul>
