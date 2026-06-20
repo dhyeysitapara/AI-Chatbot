@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { API_URLS } from "./constants";
+import { BACKEND_URL } from "./constants";
 import Answers from "./components/Answers";
 
 function App() {
@@ -9,10 +9,14 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Multi-turn conversation memory: array of { role: "user"|"model", parts: [{text}] }
+  // This is sent to the backend on every request so Gemini has full context.
+  const [conversationHistory, setConversationHistory] = useState([]);
+
   const chatContainerRef = useRef(null);
   const chatEndRef = useRef(null);
 
-  // Load history once (ensure it's an array)
+  // Load history once on mount
   useEffect(() => {
     loadHistory();
   }, []);
@@ -28,7 +32,7 @@ function App() {
     }
   };
 
-  // Scroll chat container to bottom whenever result changes
+  // Auto-scroll chat container to bottom whenever result changes
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTo({
@@ -40,18 +44,6 @@ function App() {
     }
   }, [result]);
 
-  const payload = {
-    contents: [
-      {
-        parts: [
-          {
-            text: question,
-          },
-        ],
-      },
-    ],
-  };
-
   const isEnter = (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
@@ -59,6 +51,9 @@ function App() {
     }
   };
 
+  // ─── Ask a question ─────────────────────────────────────────────────────────
+  // Sends the current question + full conversation history to the Express backend.
+  // The backend proxies to Gemini with a structured system prompt and returns a reply.
   const askQuestion = async () => {
     if (!question.trim()) return;
 
@@ -66,9 +61,9 @@ function App() {
     setLoading(true);
 
     const normalizedKey = question.trim();
-    const id = Date.now().toString(); // ALWAYS generate new ID for each question
+    const id = Date.now().toString();
 
-    // load existing history array safely
+    // ── Update sidebar history ──────────────────────────────────────────────
     let savedHistory = [];
     try {
       savedHistory = JSON.parse(localStorage.getItem("history") || "[]");
@@ -78,12 +73,9 @@ function App() {
       savedHistory = [];
     }
 
-    // FIX: Remove any existing question with same text (to avoid duplicate IDs)
     const filteredHistory = savedHistory.filter(
       (h) => (h.question || "").trim() !== normalizedKey,
     );
-
-    // Add new item at top with NEW ID
     const newHistoryItem = { id, question: normalizedKey };
     const updatedHistory = [newHistoryItem, ...filteredHistory];
 
@@ -94,95 +86,44 @@ function App() {
       console.error("Failed to save history:", err);
     }
 
+    // ── Call the Express backend (secure REST API) ──────────────────────────
     try {
-      let success = false;
-      let finalJson = null;
+      const response = await fetch(`${BACKEND_URL}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userMessage: normalizedKey,
+          conversationHistory,          // full multi-turn history
+        }),
+      });
 
-      // Try each API URL in order
-      for (const url of API_URLS) {
-        try {
-          console.log("Trying API URL:", url); // Debugging log
-
-          // Skip placeholders
-          if (
-            url.includes("YOUR_SECOND_API_KEY_HERE") ||
-            url.includes("YOUR_THIRD_API_KEY_HERE")
-          ) {
-            console.log("Skipping placeholder key");
-            continue;
-          }
-
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-          let response = await fetch(url, {
-            method: "POST",
-            body: JSON.stringify(payload),
-            headers: { "Content-Type": "application/json" },
-            signal: controller.signal,
-          });
-
-          clearTimeout(timeoutId);
-
-          if (!response.ok) {
-            // If 429 (Too Many Requests) or similar, we might want to try next key.
-            // For now, we try next key on ANY error.
-            console.warn(
-              `API key failed: ${response.status} ${response.statusText}`,
-            );
-            continue;
-          }
-
-          finalJson = await response.json();
-          success = true;
-          break; // Exit loop on success
-        } catch (innerErr) {
-          console.warn("Fetch error for key:", innerErr);
-          if (innerErr.name === "AbortError") {
-            // Determine if we should retry on timeout vs just fail.
-            // Usually timeout means backend is slow, not necessarily key limit.
-            // But let's try next key anyway just in case.
-            continue;
-          }
-          continue;
-        }
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `Server error: ${response.status}`);
       }
 
-      if (!success || !finalJson) {
-        throw new Error("All API keys failed or were exhausted.");
-      }
+      const data = await response.json();
+      const rawText = data.reply ?? "No response received.";
 
-      const json = finalJson;
+      // ── Update multi-turn conversation memory ─────────────────────────────
+      // Append the new user + model turn so the next request includes this context.
+      const newUserTurn  = { role: "user",  parts: [{ text: normalizedKey }] };
+      const newModelTurn = { role: "model", parts: [{ text: rawText }] };
+      setConversationHistory((prev) => [...prev, newUserTurn, newModelTurn]);
 
-      const rawText =
-        json?.candidates?.[0]?.content?.parts?.[0]?.text ??
-        "No response from API.";
-
-      console.log("Raw API response:", rawText); // ADD THIS
-      // Split by bullet points but keep the formatting
-      let dataString = rawText;
-
-      // If no bullets found, just split by paragraphs
-      if (dataString.length === 1) {
-        dataString = rawText
-          .split("\n\n")
-          .map((s) => s.trim())
-          .filter(Boolean);
-      }
+      // ── Update displayed chat result ──────────────────────────────────────
       const newResult = [
         ...result,
         { type: "q", text: normalizedKey },
-        { type: "a", text: [dataString] },
+        { type: "a", text: [rawText] },
       ];
-
       setResult(newResult);
 
-      // Save full chat keyed by id
+      // Save full chat keyed by id in localStorage
       try {
         const allChats = JSON.parse(localStorage.getItem("allChats") || "{}");
         allChats[id] = newResult;
         localStorage.setItem("allChats", JSON.stringify(allChats));
-        console.log("Saved chat with ID:", id, "Question:", normalizedKey);
       } catch (err) {
         console.error("Failed saving allChats:", err);
       }
@@ -190,16 +131,13 @@ function App() {
       setQuestion("");
     } catch (err) {
       console.error("askQuestion error:", err);
-      if (err.name === "AbortError") {
-        setError("Request timed out.");
-      } else {
-        setError(err.message || "Unknown error");
-      }
+      setError(err.message || "Unknown error. Is the backend running?");
     } finally {
       setLoading(false);
     }
   };
 
+  // ─── History click: reload a past chat ─────────────────────────────────────
   const handleHistoryClick = (id, questionText) => {
     try {
       const allChats = JSON.parse(localStorage.getItem("allChats") || "{}");
@@ -207,32 +145,31 @@ function App() {
       if (chat) {
         setResult(chat);
 
-        // Wait for render, then find and scroll to the specific question
+        // Rebuild conversationHistory from the stored chat so multi-turn
+        // context is preserved when the user continues a past conversation.
+        const rebuilt = [];
+        for (let i = 0; i < chat.length - 1; i += 2) {
+          const q = chat[i];
+          const a = chat[i + 1];
+          if (q?.type === "q" && a?.type === "a") {
+            rebuilt.push({ role: "user",  parts: [{ text: q.text }] });
+            rebuilt.push({ role: "model", parts: [{ text: a.text[0] ?? "" }] });
+          }
+        }
+        setConversationHistory(rebuilt);
+
         setTimeout(() => {
           if (chatContainerRef.current) {
-            // Find all question containers
-            const questionContainers =
-              document.querySelectorAll(".flex.justify-end");
-
-            // Look for the question that matches the clicked one
+            const questionContainers = document.querySelectorAll(".flex.justify-end");
             let found = false;
             for (let container of questionContainers) {
               const questionElement = container.querySelector("li");
-              if (
-                questionElement &&
-                questionElement.textContent.includes(questionText)
-              ) {
-                // Scroll this question into view at the top
-                questionElement.scrollIntoView({
-                  behavior: "smooth",
-                  block: "start",
-                });
+              if (questionElement && questionElement.textContent.includes(questionText)) {
+                questionElement.scrollIntoView({ behavior: "smooth", block: "start" });
                 found = true;
                 break;
               }
             }
-
-            // If we didn't find the specific question, scroll to top
             if (!found) {
               chatContainerRef.current.scrollTop = 0;
             }
@@ -240,43 +177,31 @@ function App() {
         }, 100);
       } else {
         setResult([]);
+        setConversationHistory([]);
       }
     } catch (err) {
       console.error("Error reading allChats:", err);
       setResult([]);
+      setConversationHistory([]);
     }
   };
 
-  // Function to clear ALL history and chats
+  // ─── Clear all history and start fresh ─────────────────────────────────────
   const clearAllHistory = () => {
-    if (
-      window.confirm(
-        "Are you sure you want to clear ALL chat history? This cannot be undone.",
-      )
-    ) {
+    if (window.confirm("Are you sure you want to clear ALL chat history? This cannot be undone.")) {
       localStorage.removeItem("history");
       localStorage.removeItem("allChats");
       setRecentHistory([]);
       setResult([]);
+      setConversationHistory([]);
       alert("All history and chats have been cleared!");
-    }
-  };
-
-  // Function to clear only sidebar history (keeps current chat)
-  const clearSidebarHistory = () => {
-    if (
-      window.confirm("Clear sidebar history? Current chat will remain visible.")
-    ) {
-      localStorage.removeItem("history");
-      setRecentHistory([]);
-      alert("Sidebar history cleared!");
     }
   };
 
   return (
     <div className="flex flex-col h-dvh overflow-hidden md:grid md:grid-cols-5">
       <div className="hidden md:block col-span-1 bg-gradient-to-b from-gray-900 to-black text-center relative top-0 left-0 transform-gpu backface-hidden">
-        {/* Brand section - enlarged text, no robot */}
+        {/* Brand section */}
         <div className="pt-8 pb-6 border-b border-gray-800">
           <div className="px-4">
             <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
